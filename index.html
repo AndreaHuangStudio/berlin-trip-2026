@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>歐洲行旅遊手冊 (融合版)</title>
+    
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        gerBlack: '#000000',
+                        gerRed: '#DD0000',
+                        gerGold: '#FFCE00'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        body { background-color: #f3f4f6; -webkit-tap-highlight-color: transparent; }
+        .sortable-ghost { opacity: 0.4; }
+    </style>
+</head>
+<body class="text-gray-800 antialiased flex justify-center select-none">
+
+<div id="app" class="w-full max-w-md bg-white min-h-screen relative shadow-2xl overflow-hidden pb-20 flex flex-col h-[100dvh]">
+    
+    <div class="relative h-64 bg-cover bg-center shrink-0" style="background-image: url('https://images.unsplash.com/photo-1467269204594-9661b134dd2b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80');">
+        <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-transparent"></div>
+        
+        <div class="absolute top-8 left-6 text-white z-10">
+            <h1 class="text-2xl font-black tracking-wider uppercase">Berlin <span class="text-gerGold">2026</span></h1>
+            <div class="flex items-center gap-2 text-sm mt-1 font-bold">
+                <span class="bg-gerGold text-gerBlack px-1.5 py-0.5 rounded text-[10px]">MARATHON</span>
+                德國柏林之旅
+            </div>
+        </div>
+
+        <div class="absolute top-8 right-6 flex items-center gap-1.5 bg-black/40 px-3 py-1.5 rounded-full border border-white/20 backdrop-blur-md shadow-sm z-10">
+            <span class="relative flex h-2.5 w-2.5">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+            </span>
+            <span class="text-[10px] font-bold text-white tracking-wide uppercase">即時同步中</span>
+        </div>
+
+        <div class="absolute bottom-10 right-4 flex space-x-3 z-30">
+            <button @click="activeTab = 'itinerary'" :class="activeTab === 'itinerary' ? 'bg-gerRed text-white scale-110' : 'bg-white/90 text-gray-700 hover:bg-white'" class="w-10 h-10 rounded-full flex items-center justify-center shadow-lg backdrop-blur-sm transition-all duration-300">
+                <i class="fa-solid fa-map-location-dot"></i>
+            </button>
+            <button @click="activeTab = 'info'" :class="activeTab === 'info' ? 'bg-gerRed text-white scale-110' : 'bg-white/90 text-gray-700 hover:bg-white'" class="w-10 h-10 rounded-full flex items-center justify-center shadow-lg backdrop-blur-sm transition-all duration-300">
+                <i class="fa-solid fa-circle-info"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="relative -mt-6 bg-white rounded-t-[2rem] z-20 flex-1 overflow-y-auto no-scrollbar px-5 pt-6">
+        
+        <div v-show="activeTab === 'itinerary'">
+            
+            <div class="flex space-x-4 overflow-x-auto no-scrollbar pb-4">
+                <div v-for="day in tripDays" :key="day.date" @click="selectedDate = day.date" 
+                     :class="selectedDate === day.date ? 'border-b-4 border-gerGold text-gerBlack transform scale-105' : 'text-gray-400'"
+                     class="flex flex-col items-center min-w-[3.5rem] cursor-pointer pb-2 transition-all">
+                    <span class="text-xl font-black">{{ day.dayName }}</span>
+                    <span class="text-xs font-bold">{{ day.dateNum }}</span>
+                </div>
+            </div>
+
+            <div v-if="isLoading" class="flex flex-col items-center justify-center py-10 text-gray-400">
+                <i class="fa-solid fa-circle-notch fa-spin text-3xl text-gerGold mb-2"></i>
+                <span class="text-xs font-bold">自雲端載入行程...</span>
+            </div>
+
+            <div v-else id="itinerary-list" class="space-y-4 pb-10">
+                
+                <div v-if="currentItinerary.length === 0" class="text-center py-10 opacity-50">
+                    <i class="fa-regular fa-calendar-xmark text-4xl mb-2 text-gray-300"></i>
+                    <p class="text-sm font-bold text-gray-400">本日尚無行程</p>
+                </div>
+
+                <div v-for="item in currentItinerary" :key="item.id" class="relative group itinerary-card" :data-id="item.id">
+                    
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 relative group transition-all hover:shadow-md">
+                        
+                        <button @click="deleteItem(item.id)" class="absolute top-2 right-2 text-gray-300 hover:text-gerRed p-2 transition-colors z-20">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+
+                        <div v-if="item.type === 'flight'" class="flex items-center space-x-4 pr-8">
+                            <div class="bg-gerBlack text-white w-12 h-12 rounded-full flex items-center justify-center shrink-0 shadow-md">
+                                <i class="fa-solid fa-plane-departure"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-xs font-bold text-gray-400">{{ item.time }} 起飛</div>
+                                <h3 class="font-bold text-lg leading-tight">{{ item.title || item.airline }}</h3>
+                                <p class="text-xs text-gray-500 mt-1 font-mono">{{ item.origin }} ✈️ {{ item.dest }}</p>
+                            </div>
+                        </div>
+
+                        <div v-else class="pr-8">
+                            <div class="flex items-start space-x-3 mb-1">
+                                <div class="text-xl font-black text-gerBlack font-mono pt-0.5">{{ item.time }}</div>
+                                <h3 class="font-bold text-gray-800 text-lg leading-tight">{{ item.title }}</h3>
+                            </div>
+                            
+                            <p v-if="item.subtitle" class="text-xs text-gray-500 font-bold flex items-center gap-1 mt-2 pl-14">
+                                <i class="fa-solid fa-location-dot text-gerRed"></i> {{ item.subtitle }}
+                            </p>
+                            
+                            <button v-if="item.subtitle || item.title" @click="openGoogleMaps(item.subtitle || item.title)" class="mt-3 ml-14 bg-gray-50 border border-gray-200 text-gray-500 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-2 hover:bg-gray-100 transition-colors">
+                                <i class="fa-solid fa-location-arrow text-blue-500"></i> 導航
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button @click="showAddModal = true" class="fixed bottom-6 right-6 w-14 h-14 bg-gerBlack text-gerGold rounded-full shadow-xl flex items-center justify-center text-2xl z-40 hover:scale-110 transition-transform border-2 border-white">
+                <i class="fa-solid fa-plus"></i>
+            </button>
+        </div>
+
+        <div v-show="activeTab === 'info'" class="space-y-6 pb-10">
+             <div class="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                 <h3 class="font-bold mb-2 flex items-center"><i class="fa-solid fa-circle-info text-blue-500 mr-2"></i> 系統狀態</h3>
+                 <p class="text-sm text-gray-600">已成功連接至 Firebase 即時資料庫。<br>您在此處的修改，將會與舊版 App 及同行旅伴即時同步！</p>
+             </div>
+        </div>
+
+    </div>
+
+    <div v-if="showAddModal" class="fixed inset-0 bg-black/60 z-50 flex items-end justify-center transition-opacity backdrop-blur-sm" @click="showAddModal = false">
+        <div @click.stop class="bg-white w-full max-w-md rounded-t-[32px] p-6 shadow-2xl transform transition-transform">
+            <div class="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
+                <h2 class="text-xl font-black text-gerBlack">新增一般行程</h2>
+                <button @click="showAddModal = false" class="text-gray-400 hover:text-gray-600 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="text-xs font-bold text-gray-400 ml-1 mb-1 block">時間</label>
+                    <input v-model="newItem.time" type="time" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl font-bold text-gerBlack outline-none focus:border-gerGold">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-400 ml-1 mb-1 block">標題</label>
+                    <input v-model="newItem.title" type="text" placeholder="例如：參觀柏林圍牆" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl font-bold text-gerBlack outline-none focus:border-gerGold">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-400 ml-1 mb-1 block">地點/備註</label>
+                    <input v-model="newItem.subtitle" type="text" placeholder="輸入地點以便導航" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl font-bold text-gerBlack outline-none focus:border-gerGold">
+                </div>
+                <button @click="submitItinerary" class="w-full py-3.5 mt-2 rounded-xl font-bold text-white bg-gerBlack hover:bg-gray-800 shadow-lg transition-colors">確認新增</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- 1. 初始化 Firebase (使用你提供的金鑰) ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyC-nArGjn5mqUPyGOaGoQOmiMJ9u8LCuyg",
+      authDomain: "berlintrip-373da.firebaseapp.com",
+      databaseURL: "https://berlintrip-373da-default-rtdb.firebaseio.com",
+      projectId: "berlintrip-373da",
+      storageBucket: "berlintrip-373da.firebasestorage.app",
+      messagingSenderId: "1007578008658",
+      appId: "1:1007578008658:web:00411d927d71e4b2c8e38b"
+    };
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.database();
+
+    // --- 2. 啟動 Vue 3 ---
+    const { createApp } = Vue
+
+    createApp({
+        data() {
+            return {
+                activeTab: 'itinerary',
+                selectedDate: '2026-09-20', // 將預設開啟的日期改為旅程第一天
+                isLoading: true,
+                showAddModal: false,
+                tripDays: [
+                    // 9月
+                    { date: '2026-09-20', dayName: 'Sun', dateNum: '20' },
+                    { date: '2026-09-21', dayName: 'Mon', dateNum: '21' },
+                    { date: '2026-09-22', dayName: 'Tue', dateNum: '22' },
+                    { date: '2026-09-23', dayName: 'Wed', dateNum: '23' },
+                    { date: '2026-09-24', dayName: 'Thu', dateNum: '24' },
+                    { date: '2026-09-25', dayName: 'Fri', dateNum: '25' },
+                    { date: '2026-09-26', dayName: 'Sat', dateNum: '26' },
+                    { date: '2026-09-27', dayName: 'Sun', dateNum: '27' },
+                    { date: '2026-09-28', dayName: 'Mon', dateNum: '28' },
+                    { date: '2026-09-29', dayName: 'Tue', dateNum: '29' },
+                    { date: '2026-09-30', dayName: 'Wed', dateNum: '30' },
+                    // 10月
+                    { date: '2026-10-01', dayName: 'Thu', dateNum: '01' },
+                    { date: '2026-10-02', dayName: 'Fri', dateNum: '02' },
+                    { date: '2026-10-03', dayName: 'Sat', dateNum: '03' },
+                    { date: '2026-10-04', dayName: 'Sun', dateNum: '04' }
+                ],
+                // 這裡會放置從 Firebase 抓下來的資料
+                itineraryData: {},
+                // 新增行程的暫存欄位
+                newItem: {
+                    time: '09:00',
+                    title: '',
+                    subtitle: ''
+                }
+            }
+        },
+        computed: {
+            currentItinerary() {
+                // 從物件轉為陣列，並依照時間排序，確保畫面呈現順序正確
+                const dayData = this.itineraryData[this.selectedDate] || {};
+                const list = Object.keys(dayData).map(key => {
+                    return { id: key, ...dayData[key] };
+                });
+                return list.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+            }
+        },
+        methods: {
+            // 從 Firebase 監聽資料變化
+            fetchDataFromFirebase() {
+                db.ref('itinerary').on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if(data) {
+                        this.itineraryData = data;
+                    } else {
+                        this.itineraryData = {};
+                    }
+                    this.isLoading = false;
+                    
+                    // 資料更新後，重新綁定拖曳功能
+                    this.$nextTick(() => {
+                        this.initSortable();
+                    });
+                });
+            },
+            // 新增資料到 Firebase
+            submitItinerary() {
+                if (!this.newItem.title) {
+                    alert('請輸入行程標題');
+                    return;
+                }
+                const dataToSave = {
+                    type: 'normal',
+                    time: this.newItem.time,
+                    title: this.newItem.title,
+                    subtitle: this.newItem.subtitle
+                };
+                // Firebase Push 語法
+                db.ref(`itinerary/${this.selectedDate}`).push(dataToSave).then(() => {
+                    this.showAddModal = false;
+                    this.newItem = { time: '09:00', title: '', subtitle: '' }; // 重置表單
+                });
+            },
+            // 從 Firebase 刪除資料
+            deleteItem(id) {
+                if(confirm('確定要刪除這個行程嗎？')) {
+                    db.ref(`itinerary/${this.selectedDate}/${id}`).remove();
+                }
+            },
+            openGoogleMaps(query) {
+                const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+                window.open(url, '_blank');
+            },
+            // 初始化拖曳 (僅視覺體驗，若要將拖曳順序寫回 Firebase 邏輯會更複雜，此處先保留前端拖曳感)
+            initSortable() {
+                const el = document.getElementById('itinerary-list');
+                if (el) {
+                    Sortable.create(el, {
+                        animation: 150,
+                        handle: '.itinerary-card', 
+                    });
+                }
+            }
+        },
+        mounted() {
+            // 網頁一載入，就去 Firebase 抓資料
+            this.fetchDataFromFirebase();
+        },
+        watch: {
+            selectedDate() {
+                this.$nextTick(() => { this.initSortable(); });
+            }
+        }
+    }).mount('#app')
+</script>
+
+</body>
+</html>
