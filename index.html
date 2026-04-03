@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>歐洲行旅遊手冊 (含購物清單完美版)</title>
+    <title>歐洲行旅遊手冊 (全自動資訊版)</title>
     
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -131,14 +131,14 @@
                             </button>
                         </div>
 
-                        <div v-if="item.type === 'flight'" class="flex items-center space-x-4 pr-14">
+                        <div v-if="item.category === '航班'" class="flex items-center space-x-4 pr-14">
                             <div class="bg-gerBlack text-white w-12 h-12 rounded-full flex items-center justify-center shrink-0 shadow-md">
                                 <i class="fa-solid fa-plane-departure"></i>
                             </div>
                             <div class="flex-1">
                                 <div class="text-xs font-bold text-gray-400">{{ item.time }} 起飛</div>
-                                <h3 class="font-bold text-lg leading-tight">{{ item.title || item.airline }}</h3>
-                                <p class="text-xs text-gray-500 mt-1 font-mono">{{ item.origin }} ✈️ {{ item.dest }}</p>
+                                <h3 class="font-bold text-lg leading-tight">{{ item.title }}</h3>
+                                <p class="text-xs text-gray-500 mt-1 font-mono">{{ item.subtitle || '未填寫地點' }}</p>
                             </div>
                         </div>
 
@@ -249,10 +249,6 @@
         </div>
 
         <div v-show="activeTab === 'info'" class="space-y-6 pb-24 px-1">
-             <div class="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                 <h3 class="font-bold mb-2 flex items-center"><i class="fa-solid fa-circle-info text-blue-500 mr-2"></i> 系統狀態</h3>
-                 <p class="text-xs text-gray-500 font-bold leading-relaxed">已成功連接至 Firebase 即時資料庫。<br>所有資料皆已開啟雲端同步！</p>
-             </div>
              
              <div class="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
                 <h3 class="font-bold mb-3 flex items-center"><i class="fa-solid fa-money-bill-transfer text-green-600 mr-2"></i> 匯率換算 (EUR to TWD)</h3>
@@ -263,68 +259,56 @@
                         {{ (calcEur * 34.5).toFixed(0) }} TWD
                     </div>
                 </div>
-                <p class="text-right text-[10px] text-gray-400 mt-2">參考匯率: 1 EUR ≈ 34.5 TWD</p>
+                <p class="text-right text-[10px] text-gray-400 mt-2">系統已連線。參考匯率: 1 EUR ≈ 34.5 TWD</p>
             </div>
 
             <div>
                 <h3 class="font-bold mb-3 flex items-center text-gerBlack"><i class="fa-solid fa-plane text-cyan-600 mr-2"></i> 航班資訊</h3>
-                <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-3 relative overflow-hidden">
-                    <div class="absolute left-0 top-0 w-1 h-full bg-cyan-500"></div>
-                    <div class="flex justify-between items-center border-b border-gray-100 pb-2 mb-3">
-                        <span class="text-[10px] bg-cyan-50 text-cyan-600 px-2 py-1 rounded font-bold uppercase tracking-wider">去程 Outbound</span>
-                        <span class="font-black text-sm text-gray-700">CI 061</span>
-                    </div>
-                    <div class="flex justify-between items-center relative">
-                        <div class="text-center w-1/3">
-                            <div class="text-3xl font-black text-gerBlack font-mono tracking-tighter">TPE</div>
-                            <div class="text-xs font-bold text-gray-400 mt-1">22:20</div>
-                        </div>
-                        <div class="flex flex-col items-center flex-1 px-2 text-gray-300">
-                            <span class="text-[10px] font-bold mb-1">13h 30m</span>
-                            <div class="w-full h-[2px] bg-gray-200 relative flex justify-center items-center">
-                                <i class="fa-solid fa-plane bg-white px-2 text-sm absolute text-cyan-400"></i>
-                            </div>
-                        </div>
-                        <div class="text-center w-1/3">
-                            <div class="text-3xl font-black text-gerBlack font-mono tracking-tighter">FRA</div>
-                            <div class="text-xs font-bold text-gray-400 mt-1">06:50 (+1)</div>
-                        </div>
-                    </div>
+                
+                <div v-if="allFlights.length === 0" class="text-xs text-gray-400 bg-white border border-dashed border-gray-300 p-4 rounded-xl text-center shadow-sm">
+                    請在「行程表」中新增分類為「航班」的行程，此處將自動列出。
                 </div>
 
-                <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 relative overflow-hidden">
-                    <div class="absolute left-0 top-0 w-1 h-full bg-gerRed"></div>
+                <div v-for="(flight, index) in allFlights" :key="flight.id" class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-3 relative overflow-hidden">
+                    <div class="absolute left-0 top-0 w-1 h-full" :class="index % 2 === 0 ? 'bg-cyan-500' : 'bg-gerRed'"></div>
                     <div class="flex justify-between items-center border-b border-gray-100 pb-2 mb-3">
-                        <span class="text-[10px] bg-red-50 text-red-600 px-2 py-1 rounded font-bold uppercase tracking-wider">回程 Inbound</span>
-                        <span class="font-black text-sm text-gray-700">CI 062</span>
+                        <span class="text-[10px] px-2 py-1 rounded font-bold tracking-wider" :class="index % 2 === 0 ? 'bg-cyan-50 text-cyan-600' : 'bg-red-50 text-red-600'">
+                            {{ flight.date }} 出發
+                        </span>
+                        <span class="font-black text-sm text-gray-700">{{ flight.title }}</span>
                     </div>
-                    <div class="flex justify-between items-center relative">
-                        <div class="text-center w-1/3">
-                            <div class="text-3xl font-black text-gerBlack font-mono tracking-tighter">FRA</div>
-                            <div class="text-xs font-bold text-gray-400 mt-1">11:20</div>
-                        </div>
-                        <div class="flex flex-col items-center flex-1 px-2 text-gray-300">
-                            <span class="text-[10px] font-bold mb-1">12h 40m</span>
-                            <div class="w-full h-[2px] bg-gray-200 relative flex justify-center items-center">
-                                <i class="fa-solid fa-plane bg-white px-2 text-sm absolute text-gerRed"></i>
-                            </div>
-                        </div>
-                        <div class="text-center w-1/3">
-                            <div class="text-3xl font-black text-gerBlack font-mono tracking-tighter">TPE</div>
-                            <div class="text-xs font-bold text-gray-400 mt-1">06:00 (+1)</div>
-                        </div>
+                    <div class="flex items-center justify-between">
+                         <div class="flex-1">
+                             <div class="text-xl font-black text-gerBlack tracking-tighter">{{ flight.subtitle || '未填寫地點' }}</div>
+                             <div class="text-xs font-bold text-gray-400 mt-1"><i class="fa-regular fa-clock"></i> 時間: {{ flight.time }}</div>
+                         </div>
+                         <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0" :class="index % 2 === 0 ? 'bg-cyan-50 text-cyan-500' : 'bg-red-50 text-gerRed'">
+                             <i class="fa-solid fa-plane"></i>
+                         </div>
                     </div>
                 </div>
             </div>
 
             <div>
                 <h3 class="font-bold mb-3 flex items-center text-gerBlack"><i class="fa-solid fa-bed text-indigo-500 mr-2"></i> 住宿資訊</h3>
-                <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                    <h4 class="font-bold text-lg text-gerBlack">柏林住宿 (範例)</h4>
-                    <p class="text-xs text-gray-500 mt-2 font-bold leading-relaxed"><i class="fa-solid fa-location-dot text-gerRed"></i> Inge-Beisheim-Platz 1, 10785 Berlin</p>
-                    <div class="flex gap-2 mt-4">
-                        <button @click="openGoogleMaps('Inge-Beisheim-Platz 1, Berlin')" class="flex-1 bg-gray-50 border border-gray-200 text-gray-600 text-xs font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-100 active:scale-95 transition-transform"><i class="fa-solid fa-map-location-dot text-blue-500"></i> 導航</button>
-                        <a href="tel:+4930220000" class="flex-1 bg-gray-50 border border-gray-200 text-gray-600 text-xs font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-100 active:scale-95 transition-transform"><i class="fa-solid fa-phone text-green-500"></i> 聯絡飯店</a>
+                
+                <div v-if="allAccommodations.length === 0" class="text-xs text-gray-400 bg-white border border-dashed border-gray-300 p-4 rounded-xl text-center shadow-sm">
+                    請在「行程表」中新增分類為「住宿」的行程，此處將自動列出。
+                </div>
+
+                <div v-for="hotel in allAccommodations" :key="hotel.id" class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-3">
+                    <div class="flex justify-between items-start">
+                        <h4 class="font-bold text-lg text-gerBlack">{{ hotel.title }}</h4>
+                        <span class="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-1 rounded font-bold">{{ hotel.date }} 入住</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2 font-bold leading-relaxed" v-if="hotel.subtitle">
+                        <i class="fa-solid fa-location-dot text-gerRed"></i> {{ hotel.subtitle }}
+                    </p>
+                    <p class="text-[10px] text-gray-400 font-bold mt-1" v-if="hotel.hours || hotel.ticket">
+                        備註: {{ hotel.hours }} {{ hotel.ticket }}
+                    </p>
+                    <div class="flex gap-2 mt-3" v-if="hotel.subtitle || hotel.title">
+                        <button @click="openGoogleMaps(hotel.subtitle || hotel.title)" class="flex-1 bg-gray-50 border border-gray-200 text-gray-600 text-xs font-bold py-2 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-100 active:scale-95 transition-transform"><i class="fa-solid fa-map-location-dot text-blue-500"></i> 導航</button>
                     </div>
                 </div>
             </div>
@@ -384,12 +368,12 @@
                     </div>
                 </div>
                 <div>
-                    <label class="text-xs font-bold text-gray-400 ml-1 mb-1 block">標題 (必填)</label>
-                    <input v-model="newItem.title" type="text" placeholder="例如：參觀柏林圍牆" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl font-bold text-gerBlack outline-none focus:border-gerGold">
+                    <label class="text-xs font-bold text-gray-400 ml-1 mb-1 block">標題 (必填) <span class="text-[10px] text-blue-500 ml-1">若為航班/住宿會自動彙整</span></label>
+                    <input v-model="newItem.title" type="text" placeholder="例如：CI061 或 柏林飯店" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl font-bold text-gerBlack outline-none focus:border-gerGold">
                 </div>
                 <div>
                     <label class="text-xs font-bold text-gray-400 ml-1 mb-1 block">地點 / 備註</label>
-                    <input v-model="newItem.subtitle" type="text" placeholder="輸入地點以便導航" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl font-bold text-gerBlack outline-none focus:border-gerGold">
+                    <input v-model="newItem.subtitle" type="text" placeholder="例如：TPE 飛 FRA 或 飯店地址" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl font-bold text-gerBlack outline-none focus:border-gerGold">
                 </div>
                 <div class="flex gap-3">
                     <div class="w-1/2">
@@ -478,7 +462,6 @@
 </div>
 
 <script>
-    // --- 1. 初始化 Firebase ---
     const firebaseConfig = {
       apiKey: "AIzaSyC-nArGjn5mqUPyGOaGoQOmiMJ9u8LCuyg",
       authDomain: "berlintrip-373da.firebaseapp.com",
@@ -493,7 +476,6 @@
     }
     const db = firebase.database();
 
-    // --- 2. 啟動 Vue 3 ---
     const { createApp } = Vue
 
     createApp({
@@ -505,7 +487,7 @@
                 showItineraryModal: false,
                 editingItineraryId: null, 
                 showExpenseModal: false,
-                showShoppingModal: false, // 購物清單視窗控制
+                showShoppingModal: false,
                 calcEur: 100,
                 tripDays: [
                     { date: '2026-09-20', dayName: 'Sun', dateNum: '20' },
@@ -553,7 +535,6 @@
                 return this.expenseList.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
             },
             shoppingList() {
-                // 將 Firebase 取回的物件轉成陣列
                 return Object.keys(this.shoppingData).map(key => ({ id: key, ...this.shoppingData[key] }));
             },
             currentWeather() {
@@ -565,6 +546,40 @@
                     { temp: 14, feelsLike: 12, icon: 'fa-cloud-rain', desc: '短暫雨' }
                 ];
                 return weathers[lastDigit % 4];
+            },
+            // 🔥 動態抓取：全行程中的「航班」
+            allFlights() {
+                let flights = [];
+                for (const date in this.itineraryData) {
+                    const dayItems = this.itineraryData[date];
+                    for (const key in dayItems) {
+                        if (dayItems[key].category === '航班') {
+                            flights.push({ date, id: key, ...dayItems[key] });
+                        }
+                    }
+                }
+                return flights.sort((a, b) => {
+                    if (a.date !== b.date) return a.date.localeCompare(b.date);
+                    return (a.time || '').localeCompare(b.time || '');
+                });
+            },
+            // 🔥 動態抓取：全行程中的「住宿」(並過濾重複飯店)
+            allAccommodations() {
+                let accommodations = [];
+                let seen = new Set();
+                for (const date in this.itineraryData) {
+                    const dayItems = this.itineraryData[date];
+                    for (const key in dayItems) {
+                        if (dayItems[key].category === '住宿') {
+                            const uniqueKey = dayItems[key].title + dayItems[key].subtitle;
+                            if (!seen.has(uniqueKey)) {
+                                seen.add(uniqueKey);
+                                accommodations.push({ date, id: key, ...dayItems[key] });
+                            }
+                        }
+                    }
+                }
+                return accommodations;
             }
         },
         methods: {
@@ -577,7 +592,6 @@
                 db.ref('wallet').on('value', (snapshot) => {
                     this.expenseData = snapshot.val() || {};
                 });
-                // 監聽購物清單
                 db.ref('shopping').on('value', (snapshot) => {
                     this.shoppingData = snapshot.val() || {};
                 });
@@ -622,10 +636,9 @@
             },
             submitShoppingItem() {
                 if (!this.newShoppingItem.name) { alert('請輸入商品名稱'); return; }
-                // 寫入 Firebase
                 db.ref('shopping').push(this.newShoppingItem).then(() => {
                     this.showShoppingModal = false;
-                    this.newShoppingItem = { name: '', location: '' }; // 重置表單
+                    this.newShoppingItem = { name: '', location: '' }; 
                 });
             },
             deleteItem(id, type) {
