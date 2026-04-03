@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>歐洲行旅遊手冊 (融合版)</title>
+    <title>歐洲行旅遊手冊 (完整版)</title>
     
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -112,7 +112,12 @@
                         <div v-else class="pr-8">
                             <div class="flex items-start space-x-3 mb-1">
                                 <div class="text-xl font-black text-gerBlack font-mono pt-0.5">{{ item.time }}</div>
-                                <h3 class="font-bold text-gray-800 text-lg leading-tight">{{ item.title }}</h3>
+                                <div class="flex-1">
+                                    <div v-if="item.category" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded text-[10px] font-bold text-gray-500 mb-1">
+                                        <i class="fa-solid" :class="getCategoryIcon(item.category)"></i> {{ item.category }}
+                                    </div>
+                                    <h3 class="font-bold text-gray-800 text-lg leading-tight">{{ item.title }}</h3>
+                                </div>
                             </div>
                             
                             <p v-if="item.subtitle" class="text-xs text-gray-500 font-bold flex items-center gap-1 mt-2 pl-14">
@@ -135,7 +140,7 @@
         <div v-show="activeTab === 'info'" class="space-y-6 pb-10">
              <div class="bg-gray-50 rounded-2xl p-4 border border-gray-100">
                  <h3 class="font-bold mb-2 flex items-center"><i class="fa-solid fa-circle-info text-blue-500 mr-2"></i> 系統狀態</h3>
-                 <p class="text-sm text-gray-600">已成功連接至 Firebase 即時資料庫。<br>您在此處的修改，將會與舊版 App 及同行旅伴即時同步！</p>
+                 <p class="text-sm text-gray-600">已成功連接至 Firebase 即時資料庫。<br>您在此處的修改，將會與同行旅伴即時同步！</p>
              </div>
         </div>
 
@@ -144,11 +149,17 @@
     <div v-if="showAddModal" class="fixed inset-0 bg-black/60 z-50 flex items-end justify-center transition-opacity backdrop-blur-sm" @click="showAddModal = false">
         <div @click.stop class="bg-white w-full max-w-md rounded-t-[32px] p-6 shadow-2xl transform transition-transform">
             <div class="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
-                <h2 class="text-xl font-black text-gerBlack">新增一般行程</h2>
+                <h2 class="text-xl font-black text-gerBlack">新增行程</h2>
                 <button @click="showAddModal = false" class="text-gray-400 hover:text-gray-600 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
             </div>
             
             <div class="space-y-4">
+                <div>
+                    <label class="text-xs font-bold text-gray-400 ml-1 mb-1 block">分類</label>
+                    <select v-model="newItem.category" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl font-bold text-gerBlack outline-none focus:border-gerGold">
+                        <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+                    </select>
+                </div>
                 <div>
                     <label class="text-xs font-bold text-gray-400 ml-1 mb-1 block">時間</label>
                     <input v-model="newItem.time" type="time" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl font-bold text-gerBlack outline-none focus:border-gerGold">
@@ -169,7 +180,7 @@
 </div>
 
 <script>
-    // --- 1. 初始化 Firebase (使用你提供的金鑰) ---
+    // --- 1. 初始化 Firebase ---
     const firebaseConfig = {
       apiKey: "AIzaSyC-nArGjn5mqUPyGOaGoQOmiMJ9u8LCuyg",
       authDomain: "berlintrip-373da.firebaseapp.com",
@@ -191,11 +202,10 @@
         data() {
             return {
                 activeTab: 'itinerary',
-                selectedDate: '2026-09-20', // 將預設開啟的日期改為旅程第一天
+                selectedDate: '2026-09-20', // 預設開啟日期
                 isLoading: true,
                 showAddModal: false,
                 tripDays: [
-                    // 9月
                     { date: '2026-09-20', dayName: 'Sun', dateNum: '20' },
                     { date: '2026-09-21', dayName: 'Mon', dateNum: '21' },
                     { date: '2026-09-22', dayName: 'Tue', dateNum: '22' },
@@ -207,25 +217,27 @@
                     { date: '2026-09-28', dayName: 'Mon', dateNum: '28' },
                     { date: '2026-09-29', dayName: 'Tue', dateNum: '29' },
                     { date: '2026-09-30', dayName: 'Wed', dateNum: '30' },
-                    // 10月
                     { date: '2026-10-01', dayName: 'Thu', dateNum: '01' },
                     { date: '2026-10-02', dayName: 'Fri', dateNum: '02' },
                     { date: '2026-10-03', dayName: 'Sat', dateNum: '03' },
                     { date: '2026-10-04', dayName: 'Sun', dateNum: '04' }
                 ],
-                // 這裡會放置從 Firebase 抓下來的資料
+                // Firebase 資料存放區
                 itineraryData: {},
+                // 定義下拉選單有哪些分類
+                categories: ['景點', '住宿', '美食', '購物', '交通', '航班', '其他'],
                 // 新增行程的暫存欄位
                 newItem: {
                     time: '09:00',
                     title: '',
-                    subtitle: ''
+                    subtitle: '',
+                    category: '景點' // 預設選項
                 }
             }
         },
         computed: {
             currentItinerary() {
-                // 從物件轉為陣列，並依照時間排序，確保畫面呈現順序正確
+                // 將該天的物件資料轉為陣列，並依照時間排序
                 const dayData = this.itineraryData[this.selectedDate] || {};
                 const list = Object.keys(dayData).map(key => {
                     return { id: key, ...dayData[key] };
@@ -259,14 +271,16 @@
                 }
                 const dataToSave = {
                     type: 'normal',
+                    category: this.newItem.category,
                     time: this.newItem.time,
                     title: this.newItem.title,
                     subtitle: this.newItem.subtitle
                 };
-                // Firebase Push 語法
+                
                 db.ref(`itinerary/${this.selectedDate}`).push(dataToSave).then(() => {
                     this.showAddModal = false;
-                    this.newItem = { time: '09:00', title: '', subtitle: '' }; // 重置表單
+                    // 成功後重置表單，保持預設為景點
+                    this.newItem = { time: '09:00', title: '', subtitle: '', category: '景點' }; 
                 });
             },
             // 從 Firebase 刪除資料
@@ -275,11 +289,25 @@
                     db.ref(`itinerary/${this.selectedDate}/${id}`).remove();
                 }
             },
+            // Google Maps 導航
             openGoogleMaps(query) {
                 const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
                 window.open(url, '_blank');
             },
-            // 初始化拖曳 (僅視覺體驗，若要將拖曳順序寫回 Firebase 邏輯會更複雜，此處先保留前端拖曳感)
+            // 根據分類回傳對應的 FontAwesome 圖示顏色
+            getCategoryIcon(category) {
+                const icons = {
+                    '景點': 'fa-camera text-blue-500',
+                    '住宿': 'fa-bed text-indigo-500',
+                    '美食': 'fa-utensils text-orange-500',
+                    '購物': 'fa-bag-shopping text-pink-500',
+                    '交通': 'fa-train-subway text-green-500',
+                    '航班': 'fa-plane text-cyan-500',
+                    '其他': 'fa-thumbtack text-gray-500'
+                };
+                return icons[category] || 'fa-thumbtack text-gray-500';
+            },
+            // 初始化拖曳感
             initSortable() {
                 const el = document.getElementById('itinerary-list');
                 if (el) {
@@ -291,7 +319,6 @@
             }
         },
         mounted() {
-            // 網頁一載入，就去 Firebase 抓資料
             this.fetchDataFromFirebase();
         },
         watch: {
