@@ -14,7 +14,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
     <script>
         tailwind.config = {
@@ -33,7 +32,7 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         body { background-color: #f3f4f6; -webkit-tap-highlight-color: transparent; }
-        .sortable-ghost { opacity: 0.4; }
+        /* 已拔除拖曳模式的 CSS */
     </style>
 </head>
 <body class="text-gray-800 antialiased flex justify-center select-none">
@@ -44,7 +43,7 @@
         <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-transparent"></div>
         
         <div class="absolute top-8 left-6 text-white z-10">
-            <h1 class="text-2xl font-black tracking-wider uppercase">Andrea's <span class="text-gerGold">Trip</span></h1>
+            <h1 class="text-2xl font-black tracking-wider uppercase">Andrea&Duke's <span class="text-gerGold">Trip</span></h1>
             <div class="flex items-center gap-2 text-sm mt-1 font-bold">
                 <span class="bg-gerGold text-gerBlack px-1.5 py-0.5 rounded text-[10px]">MARATHON 2026</span>
                 德國與荷蘭之旅
@@ -112,13 +111,13 @@
                 <span class="text-xs font-bold">載入中...</span>
             </div>
 
-            <div v-else id="itinerary-list" class="space-y-0 pb-10">
+            <div v-else class="space-y-0 pb-10">
                 <div v-if="currentItinerary.length === 0" class="text-center py-10 opacity-50">
                     <i class="fa-regular fa-calendar-xmark text-4xl mb-2 text-gray-300"></i>
                     <p class="text-sm font-bold text-gray-400">本日尚無行程</p>
                 </div>
 
-                <div v-for="(item, index) in currentItinerary" :key="item.id" class="relative group itinerary-card" :data-id="item.id">
+                <div v-for="(item, index) in currentItinerary" :key="item.id" class="relative group">
                     <div v-if="item.transportTime" class="flex flex-col items-center py-1 -mb-3 z-0 relative">
                         <div v-if="index > 0" class="w-0.5 h-6 bg-gray-200"></div>
                         <div class="bg-white text-[10px] px-3 py-1 rounded-full text-gray-500 border border-gray-200 shadow-sm flex items-center space-x-1.5 z-10 font-bold">
@@ -467,7 +466,6 @@
 </div>
 
 <script>
-    // 註冊 Service Worker 實現離線功能
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('sw.js')
@@ -501,7 +499,7 @@
                 isLoading: true,
                 showItineraryModal: false,
                 editingItineraryId: null, 
-                originalDate: null, // 用來追蹤編輯前原本的日期
+                originalDate: null, 
                 showExpenseModal: false,
                 showShoppingModal: false,
                 calcEur: 100,
@@ -525,15 +523,13 @@
                 itineraryData: {},
                 categories: ['景點', '住宿', '美食', '購物', '交通', '航班', '其他'],
                 newItem: {
-                    date: '2026-09-20', // 新增的日期欄位
+                    date: '2026-09-20', 
                     time: '09:00', title: '', subtitle: '', category: '景點',
                     hours: '', ticket: '', transportType: 'transit', transportTime: ''
                 },
                 expenseData: {},
                 expCategories: ['飲食', '交通', '住宿', '門票', '購物', '其他'],
-                newExpense: {
-                    date: '2026-09-20', category: '飲食', name: '', amount: '', payment: '現金', note: ''
-                },
+                newExpense: { date: '2026-09-20', category: '飲食', name: '', amount: '', payment: '現金', note: '' },
                 shoppingData: {},
                 newShoppingItem: { name: '', location: '' },
                 checklistData: {},
@@ -609,7 +605,6 @@
                 db.ref('itinerary').on('value', (snapshot) => {
                     this.itineraryData = snapshot.val() || {};
                     this.isLoading = false;
-                    this.$nextTick(() => { this.initSortable(); });
                 });
                 db.ref('wallet').on('value', (snapshot) => {
                     this.expenseData = snapshot.val() || {};
@@ -630,12 +625,10 @@
                     alert('本日行程尚未填寫地點，無法產生路線圖喔！');
                     return;
                 }
-
                 if (places.length === 1) {
                     this.openGoogleMaps(places[0]);
                     return;
                 }
-
                 const origin = encodeURIComponent(places[0]);
                 const destination = encodeURIComponent(places[places.length - 1]);
                 const waypoints = places.slice(1, -1).map(p => encodeURIComponent(p)).join('|');
@@ -644,23 +637,22 @@
                 if (waypoints) {
                     url += `&waypoints=${waypoints}`;
                 }
-                
                 window.open(url, '_blank');
             },
             openAddItinerary() {
                 this.editingItineraryId = null;
                 this.originalDate = null;
                 this.newItem = { 
-                    date: this.selectedDate, // 預設為目前畫面停留在的日期
+                    date: this.selectedDate,
                     time: '09:00', title: '', subtitle: '', category: '景點', hours: '', ticket: '', transportType: 'transit', transportTime: '' 
                 };
                 this.showItineraryModal = true;
             },
             openEditItinerary(item) {
                 this.editingItineraryId = item.id; 
-                this.originalDate = this.selectedDate; // 紀錄它原本在哪一天
+                this.originalDate = this.selectedDate; 
                 this.newItem = { 
-                    date: this.selectedDate, // 將下拉選單設定在目前的日期
+                    date: this.selectedDate, 
                     time: item.time || '09:00', title: item.title || '', subtitle: item.subtitle || '', category: item.category || '景點',
                     hours: item.hours || '', ticket: item.ticket || '', transportType: item.transportType || 'transit', transportTime: item.transportTime || ''
                 };
@@ -673,39 +665,28 @@
             },
             submitItinerary() {
                 if (!this.newItem.title) { alert('請輸入行程標題'); return; }
-                
                 const dataToSave = { 
-                    time: this.newItem.time,
-                    title: this.newItem.title,
-                    subtitle: this.newItem.subtitle,
-                    category: this.newItem.category,
-                    hours: this.newItem.hours,
-                    ticket: this.newItem.ticket,
-                    transportType: this.newItem.transportType,
-                    transportTime: this.newItem.transportTime,
-                    type: 'normal' 
+                    time: this.newItem.time, title: this.newItem.title, subtitle: this.newItem.subtitle,
+                    category: this.newItem.category, hours: this.newItem.hours, ticket: this.newItem.ticket,
+                    transportType: this.newItem.transportType, transportTime: this.newItem.transportTime, type: 'normal' 
                 };
                 
                 if (this.editingItineraryId) {
-                    // 編輯模式
                     if (this.originalDate !== this.newItem.date) {
-                        // 如果更改了日期：先刪除原本的，再加到新的日期底下
                         db.ref(`itinerary/${this.originalDate}/${this.editingItineraryId}`).remove().then(() => {
                             db.ref(`itinerary/${this.newItem.date}`).push(dataToSave).then(() => {
-                                this.selectedDate = this.newItem.date; // 畫面自動跳到新日期
+                                this.selectedDate = this.newItem.date; 
                                 this.closeItineraryModal();
                             });
                         });
                     } else {
-                        // 只是修改內容，日期沒變
                         db.ref(`itinerary/${this.newItem.date}/${this.editingItineraryId}`).update(dataToSave).then(() => {
                             this.closeItineraryModal();
                         });
                     }
                 } else {
-                    // 新增模式
                     db.ref(`itinerary/${this.newItem.date}`).push(dataToSave).then(() => {
-                        this.selectedDate = this.newItem.date; // 畫面自動跳到新增的那一天
+                        this.selectedDate = this.newItem.date; 
                         this.closeItineraryModal();
                     });
                 }
@@ -726,10 +707,7 @@
             },
             submitChecklistItem() {
                 if (!this.newChecklistItem.trim()) return;
-                db.ref('checklist').push({
-                    text: this.newChecklistItem,
-                    completed: false
-                }).then(() => {
+                db.ref('checklist').push({ text: this.newChecklistItem, completed: false }).then(() => {
                     this.newChecklistItem = ''; 
                 });
             },
@@ -766,21 +744,12 @@
             getTransportIcon(type) {
                 const icons = { 'walk': 'fa-solid fa-person-walking', 'car': 'fa-solid fa-car', 'transit': 'fa-solid fa-train-subway' };
                 return icons[type] || 'fa-solid fa-train-subway';
-            },
-            initSortable() {
-                const el = document.getElementById('itinerary-list');
-                if (el) { Sortable.create(el, { animation: 150, handle: '.itinerary-card' }); }
             }
         },
         mounted() {
             this.fetchDataFromFirebase();
             window.addEventListener('online', () => this.isOnline = true);
             window.addEventListener('offline', () => this.isOnline = false);
-        },
-        watch: {
-            selectedDate() {
-                this.$nextTick(() => { this.initSortable(); });
-            }
         }
     }).mount('#app')
 </script>
