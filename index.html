@@ -3,15 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Andrea's Berlin Trip 2026</title>
+    <title>ANDREA&DUKE'S TRIP 2026</title>
     
+    <!-- 離線與 App 必備標籤 -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#000000">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3180/3180118.png">
 
+    <!-- Vue 3 -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
@@ -32,24 +37,25 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         body { background-color: #f3f4f6; -webkit-tap-highlight-color: transparent; }
-        /* 已拔除拖曳模式的 CSS */
     </style>
 </head>
 <body class="text-gray-800 antialiased flex justify-center select-none">
 
 <div id="app" class="w-full max-w-md bg-white min-h-screen relative shadow-2xl overflow-hidden pb-20 flex flex-col h-[100dvh]">
     
+    <!-- 頁首區塊與圖片 -->
     <div class="relative h-64 bg-cover bg-center shrink-0" style="background-image: url('https://images.unsplash.com/photo-1467269204594-9661b134dd2b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80');">
         <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-transparent"></div>
         
         <div class="absolute top-8 left-6 text-white z-10">
-            <h1 class="text-2xl font-black tracking-wider uppercase">Andrea&Duke's <span class="text-gerGold">Trip</span></h1>
+            <h1 class="text-2xl font-black tracking-wider uppercase">ANDREA&DUKE'S <span class="text-gerGold">TRIP</span></h1>
             <div class="flex items-center gap-2 text-sm mt-1 font-bold">
                 <span class="bg-gerGold text-gerBlack px-1.5 py-0.5 rounded text-[10px]">MARATHON 2026</span>
-                德國與荷蘭之旅
+                荷德捷之旅
             </div>
         </div>
 
+        <!-- 網路狀態指示燈 -->
         <div class="absolute top-8 right-6 flex items-center gap-1.5 bg-black/40 px-3 py-1.5 rounded-full border border-white/20 backdrop-blur-md shadow-sm z-10">
             <span class="relative flex h-2.5 w-2.5">
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full" :class="isOnline ? 'bg-green-400' : 'bg-red-400'"></span>
@@ -58,6 +64,7 @@
             <span class="text-[10px] font-bold text-white tracking-wide uppercase">{{ isOnline ? '即時同步中' : '離線模式' }}</span>
         </div>
 
+        <!-- 浮動 Tab 選單 -->
         <div class="absolute bottom-10 right-4 flex space-x-2 z-30">
             <button @click="activeTab = 'itinerary'" :class="activeTab === 'itinerary' ? 'bg-gerRed text-white scale-110' : 'bg-white/90 text-gray-700 hover:bg-white'" class="w-9 h-9 rounded-full flex items-center justify-center shadow-lg backdrop-blur-sm transition-all duration-300">
                 <i class="fa-solid fa-map-location-dot"></i>
@@ -77,8 +84,10 @@
         </div>
     </div>
 
-    <div class="relative -mt-6 bg-white rounded-t-[2rem] z-20 flex-1 overflow-y-auto no-scrollbar px-5 pt-6">
+    <!-- 主內容區域 -->
+    <div class="relative -mt-6 bg-white rounded-t-[2rem] z-20 flex-1 overflow-y-auto no-scrollbar px-5 pt-6 pb-24">
         
+        <!-- ================= 1. 每日行程表 ================= -->
         <div v-show="activeTab === 'itinerary'">
             <div class="flex space-x-4 overflow-x-auto no-scrollbar pb-4">
                 <div v-for="day in tripDays" :key="day.date" @click="selectedDate = day.date" 
@@ -89,6 +98,7 @@
                 </div>
             </div>
 
+            <!-- 天氣資訊卡片 -->
             <div class="bg-gradient-to-r from-blue-500 to-cyan-400 rounded-2xl p-4 mb-3 shadow-md text-white flex justify-between items-center transition-all duration-500">
                 <div>
                     <div class="text-xs font-bold opacity-80 mb-1 flex items-center gap-1"><i class="fa-solid fa-location-dot"></i> 當地天氣</div>
@@ -100,6 +110,7 @@
                 </div>
             </div>
 
+            <!-- 一鍵開啟今日路線地圖 -->
             <div class="mb-5">
                 <button @click="openDailyRouteMap" class="w-full bg-blue-50 border border-blue-100 text-blue-600 font-bold py-3 rounded-xl flex items-center justify-center gap-2 shadow-sm hover:bg-blue-100 active:scale-95 transition-transform">
                     <i class="fa-solid fa-route text-lg"></i> 開啟今日路線地圖
@@ -111,7 +122,7 @@
                 <span class="text-xs font-bold">載入中...</span>
             </div>
 
-            <div v-else class="space-y-0 pb-10">
+            <div v-else class="space-y-0 pb-4">
                 <div v-if="currentItinerary.length === 0" class="text-center py-10 opacity-50">
                     <i class="fa-regular fa-calendar-xmark text-4xl mb-2 text-gray-300"></i>
                     <p class="text-sm font-bold text-gray-400">本日尚無行程</p>
@@ -171,11 +182,10 @@
                     </div>
                 </div>
             </div>
-
-            <button @click="openAddItinerary" class="fixed bottom-6 right-6 w-14 h-14 bg-gerBlack text-gerGold rounded-full shadow-xl flex items-center justify-center text-2xl z-40 hover:scale-110 transition-transform border-2 border-white"><i class="fa-solid fa-plus"></i></button>
         </div>
 
-        <div v-show="activeTab === 'checklist'" class="pb-10">
+        <!-- ================= 2. 裝備/行李清單 ================= -->
+        <div v-show="activeTab === 'checklist'">
             <div class="bg-gerBlack text-white rounded-2xl p-6 mb-6 shadow-lg relative overflow-hidden">
                 <div class="absolute -right-4 -bottom-4 opacity-10"><i class="fa-solid fa-list-check text-9xl"></i></div>
                 <p class="text-sm text-gray-300 font-bold">出發前裝備確認</p>
@@ -201,7 +211,8 @@
             </div>
         </div>
 
-        <div v-show="activeTab === 'shopping'" class="pb-10">
+        <!-- ================= 3. 購物清單 ================= -->
+        <div v-show="activeTab === 'shopping'">
             <div class="bg-gerBlack text-white rounded-2xl p-6 mb-6 shadow-lg relative overflow-hidden">
                 <div class="absolute -right-4 -bottom-4 opacity-10"><i class="fa-solid fa-basket-shopping text-9xl"></i></div>
                 <p class="text-sm text-gray-300 font-bold">購物清單</p>
@@ -223,11 +234,10 @@
                     <button @click="deleteItem(item.id, 'shopping')" class="absolute right-3 text-gray-300 hover:text-gerRed p-2 transition-colors z-20"><i class="fa-solid fa-trash-can text-lg"></i></button>
                 </div>
             </div>
-
-            <button @click="showShoppingModal = true" class="fixed bottom-6 right-6 w-14 h-14 bg-gerBlack text-gerGold rounded-full shadow-xl flex items-center justify-center text-2xl z-40"><i class="fa-solid fa-plus"></i></button>
         </div>
 
-        <div v-show="activeTab === 'expenses'" class="pb-10">
+        <!-- ================= 4. 記帳 (花費) ================= -->
+        <div v-show="activeTab === 'expenses'">
             <div class="bg-gerBlack text-white rounded-2xl p-6 mb-6 shadow-lg relative overflow-hidden">
                 <div class="absolute -right-4 -bottom-4 opacity-10"><i class="fa-solid fa-wallet text-9xl"></i></div>
                 <p class="text-sm text-gray-300 font-bold">總花費 (EUR)</p>
@@ -258,11 +268,10 @@
                     </button>
                 </div>
             </div>
-
-            <button @click="showExpenseModal = true" class="fixed bottom-6 right-6 w-14 h-14 bg-gerBlack text-gerGold rounded-full shadow-xl flex items-center justify-center text-2xl z-40 hover:scale-110 transition-transform border-2 border-white"><i class="fa-solid fa-plus"></i></button>
         </div>
 
-        <div v-show="activeTab === 'info'" class="space-y-6 pb-24 px-1">
+        <!-- ================= 5. 資訊 ================= -->
+        <div v-show="activeTab === 'info'" class="space-y-6 px-1">
              <div class="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
                 <h3 class="font-bold mb-3 flex items-center"><i class="fa-solid fa-money-bill-transfer text-green-600 mr-2"></i> 匯率換算 (EUR to TWD)</h3>
                 <div class="flex items-center space-x-3">
@@ -274,6 +283,7 @@
                 </div>
             </div>
 
+            <!-- 自動抓取：航班資訊 -->
             <div>
                 <h3 class="font-bold mb-3 flex items-center text-gerBlack"><i class="fa-solid fa-plane text-cyan-600 mr-2"></i> 航班資訊</h3>
                 <div v-if="allFlights.length === 0" class="text-xs text-gray-400 bg-white border border-dashed border-gray-300 p-4 rounded-xl text-center shadow-sm">
@@ -295,6 +305,7 @@
                 </div>
             </div>
 
+            <!-- 自動抓取：住宿資訊 -->
             <div>
                 <h3 class="font-bold mb-3 flex items-center text-gerBlack"><i class="fa-solid fa-bed text-indigo-500 mr-2"></i> 住宿資訊</h3>
                 <div v-if="allAccommodations.length === 0" class="text-xs text-gray-400 bg-white border border-dashed border-gray-300 p-4 rounded-xl text-center shadow-sm">
@@ -312,6 +323,7 @@
                 </div>
             </div>
 
+            <!-- 緊急聯絡 -->
             <div>
                 <h3 class="font-bold mb-3 mt-6 flex items-center text-gerBlack"><i class="fa-solid fa-truck-medical text-red-500 mr-2"></i> 緊急醫療與治安</h3>
                 <div class="grid grid-cols-2 gap-3 text-center mb-3">
@@ -327,6 +339,23 @@
         </div>
     </div>
 
+    <!-- =============== 懸浮新增按鈕 (統一放置於最外層，解決 iOS 隱形 Bug) =============== -->
+    
+    <button v-if="activeTab === 'itinerary'" @click="openAddItinerary" class="absolute bottom-6 right-6 w-14 h-14 bg-gerBlack text-gerGold rounded-full shadow-2xl flex items-center justify-center text-2xl z-40 active:scale-95 transition-transform border-2 border-white">
+        <i class="fa-solid fa-plus"></i>
+    </button>
+
+    <button v-if="activeTab === 'shopping'" @click="showShoppingModal = true" class="absolute bottom-6 right-6 w-14 h-14 bg-gerBlack text-gerGold rounded-full shadow-2xl flex items-center justify-center text-2xl z-40 active:scale-95 transition-transform border-2 border-white">
+        <i class="fa-solid fa-plus"></i>
+    </button>
+
+    <button v-if="activeTab === 'expenses'" @click="showExpenseModal = true" class="absolute bottom-6 right-6 w-14 h-14 bg-gerBlack text-gerGold rounded-full shadow-2xl flex items-center justify-center text-2xl z-40 active:scale-95 transition-transform border-2 border-white">
+        <i class="fa-solid fa-plus"></i>
+    </button>
+
+    <!-- =============== MODALS (彈出視窗) =============== -->
+
+    <!-- 新增/編輯行程 Modal -->
     <div v-if="showItineraryModal" class="fixed inset-0 bg-black/60 z-50 flex items-end justify-center transition-opacity backdrop-blur-sm" @click="closeItineraryModal">
         <div @click.stop class="bg-white w-full max-w-md rounded-t-[32px] p-6 shadow-2xl transform transition-transform max-h-[90vh] overflow-y-auto no-scrollbar">
             <div class="flex items-center justify-between mb-4 border-b border-gray-100 pb-4">
@@ -396,6 +425,7 @@
         </div>
     </div>
 
+    <!-- 新增記帳 Modal -->
     <div v-if="showExpenseModal" class="fixed inset-0 bg-black/60 z-50 flex items-end justify-center transition-opacity backdrop-blur-sm" @click="showExpenseModal = false">
         <div @click.stop class="bg-white w-full max-w-md rounded-t-[32px] p-6 shadow-2xl transform transition-transform">
             <div class="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
@@ -443,6 +473,7 @@
         </div>
     </div>
 
+    <!-- 新增購物清單 Modal -->
     <div v-if="showShoppingModal" class="fixed inset-0 bg-black/60 z-50 flex items-end justify-center transition-opacity backdrop-blur-sm" @click="showShoppingModal = false">
         <div @click.stop class="bg-white w-full max-w-md rounded-t-[32px] p-6 shadow-2xl transform transition-transform">
             <div class="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
