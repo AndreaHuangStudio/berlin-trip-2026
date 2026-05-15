@@ -32,7 +32,6 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         body { background-color: #f3f4f6; -webkit-tap-highlight-color: transparent; }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
     </style>
 </head>
 <body class="text-gray-800 antialiased flex justify-center select-none">
@@ -55,7 +54,7 @@
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full" :class="isOnline ? 'bg-green-400' : 'bg-red-400'"></span>
               <span class="relative inline-flex rounded-full h-2.5 w-2.5" :class="isOnline ? 'bg-green-500' : 'bg-red-500'"></span>
             </span>
-            <span class="text-[10px] font-bold text-white tracking-wide uppercase">{{ isOnline ? '同步中' : '離線' }}</span>
+            <span class="text-[10px] font-bold text-white tracking-wide uppercase">{{ isOnline ? '即時同步中' : '離線模式' }}</span>
         </div>
 
         <div class="absolute bottom-10 right-3 flex space-x-2 z-30">
@@ -125,6 +124,7 @@
                         <div class="w-0.5 h-6 bg-gray-200"></div>
                     </div>
                     <div v-else-if="index > 0" class="flex flex-col items-center py-1 -mb-3 z-0 relative"><div class="w-0.5 h-8 bg-gray-200"></div></div>
+                    
                     <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 relative mt-3">
                         <div class="absolute top-2 right-2 flex gap-1">
                             <button @click="openEditItinerary(item)" class="text-gray-300 hover:text-gerGold p-2"><i class="fa-solid fa-pen-to-square"></i></button>
@@ -149,36 +149,36 @@
         <div v-show="activeTab === 'calendar'" class="pb-10">
             <h2 class="text-xl font-black mb-6 flex items-center gap-2"><i class="fa-solid fa-calendar-week text-gerRed"></i> 行程全覽</h2>
             
-            <div class="mb-8">
-                <h3 class="text-sm font-black text-gray-400 mb-3 border-l-4 border-gerGold pl-2 uppercase">September 2026</h3>
-                <div class="calendar-grid text-center">
-                    <div v-for="d in ['日','一','二','三','四','五','六']" class="text-[10px] font-bold text-gray-300 py-2">{{d}}</div>
-                    <div v-for="empty in 2" class="py-4"></div>
-                    <div v-for="day in 30" :key="'sept'+day" 
-                         @click="jumpToDate('2026-09-' + (day < 10 ? '0' + day : day))"
-                         class="relative py-3 rounded-xl border transition-all"
-                         :class="isTripDate('2026-09-' + (day < 10 ? '0' + day : day)) ? 'bg-white border-gerGold shadow-sm font-black' : 'border-transparent text-gray-300'">
-                        <span class="text-sm">{{ day }}</span>
-                        <div v-if="hasEvents('2026-09-' + (day < 10 ? '0' + day : day))" class="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-blue-500 rounded-full"></div>
+            <div class="space-y-4">
+                <div v-for="day in tripDays" :key="'overview'+day.date" class="flex gap-3 items-stretch relative">
+                    
+                    <div class="flex-shrink-0 w-12 flex flex-col items-center bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm z-10 h-max">
+                        <div class="bg-gerRed text-white text-[10px] font-bold w-full text-center py-0.5 uppercase">{{day.dayName}}</div>
+                        <div class="text-lg font-black py-1 text-gerBlack">{{day.dateNum}}</div>
                     </div>
-                </div>
-            </div>
+                    
+                    <div class="absolute left-6 top-10 bottom-[-1rem] w-0.5 bg-gray-100 -z-0" v-if="day.date !== tripDays[tripDays.length-1].date"></div>
 
-            <div>
-                <h3 class="text-sm font-black text-gray-400 mb-3 border-l-4 border-gerGold pl-2 uppercase">October 2026</h3>
-                <div class="calendar-grid text-center">
-                    <div v-for="d in ['日','一','二','三','四','五','六']" class="text-[10px] font-bold text-gray-300 py-2">{{d}}</div>
-                    <div v-for="empty in 4" class="py-4"></div>
-                    <div v-for="day in 31" :key="'oct'+day" 
-                         @click="jumpToDate('2026-10-' + (day < 10 ? '0' + day : day))"
-                         class="relative py-3 rounded-xl border transition-all"
-                         :class="isTripDate('2026-10-' + (day < 10 ? '0' + day : day)) ? 'bg-white border-gerGold shadow-sm font-black' : 'border-transparent text-gray-300'">
-                        <span class="text-sm">{{ day }}</span>
-                        <div v-if="hasEvents('2026-10-' + (day < 10 ? '0' + day : day))" class="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-blue-500 rounded-full"></div>
+                    <div class="flex-1 bg-white p-3 rounded-xl border border-gray-100 shadow-sm hover:border-gerGold transition-colors cursor-pointer mb-2" @click="jumpToDate(day.date)">
+                        
+                        <div v-if="!hasEvents(day.date)" class="text-xs text-gray-400 font-bold py-1">
+                            自由活動 (尚無行程)
+                        </div>
+                        
+                        <ul v-else class="space-y-2">
+                            <li v-for="item in getDayItinerary(day.date)" :key="'ov'+item.id" class="text-xs flex items-start gap-2">
+                                <span class="font-mono font-bold text-gerBlack bg-gray-50 px-1 rounded border border-gray-100">{{item.time}}</span>
+                                <span class="text-gray-700 font-bold flex-1 leading-tight">{{item.title}}</span>
+                                <span v-if="item.category === '航班'" class="text-[10px] bg-cyan-50 text-cyan-600 px-1.5 py-0.5 rounded flex-shrink-0"><i class="fa-solid fa-plane"></i></span>
+                                <span v-else-if="item.category === '住宿'" class="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded flex-shrink-0"><i class="fa-solid fa-bed"></i></span>
+                            </li>
+                        </ul>
+
                     </div>
                 </div>
             </div>
-            <p class="text-[10px] text-gray-400 mt-6 text-center font-bold">提示：點擊有框選的日期可跳轉至該日行程</p>
+            
+            <p class="text-[10px] text-gray-400 mt-6 text-center font-bold">提示：點擊右側卡片即可跳轉至該日修改行程</p>
         </div>
 
         <div v-show="activeTab === 'checklist'" class="pb-10">
@@ -279,7 +279,7 @@
         </div>
     </div>
 
-    <button v-if="['itinerary','shopping','expenses'].includes(activeTab)" @click="handlePlusClick" class="absolute bottom-6 right-6 w-14 h-14 bg-gerBlack text-gerGold rounded-full shadow-2xl flex items-center justify-center text-2xl z-40 border-2 border-white">
+    <button v-if="['itinerary','shopping','expenses'].includes(activeTab)" @click="handlePlusClick" class="absolute bottom-6 right-6 w-14 h-14 bg-gerBlack text-gerGold rounded-full shadow-2xl flex items-center justify-center text-2xl z-40 border-2 border-white active:scale-95 transition-transform">
         <i class="fa-solid fa-plus"></i>
     </button>
 
@@ -287,6 +287,13 @@
         <div @click.stop class="bg-white w-full max-w-md rounded-t-[32px] p-6 shadow-2xl max-h-[90vh] overflow-y-auto no-scrollbar">
             <h2 class="text-xl font-black text-gerBlack mb-4 border-b border-gray-100 pb-4">{{ editingItineraryId ? '編輯行程' : '新增行程' }}</h2>
             <div class="space-y-4">
+                <div class="bg-gray-50 p-3 rounded-xl border border-gray-200">
+                    <p class="text-xs font-bold text-gray-500 mb-2">前往此行程的交通 (選填)</p>
+                    <div class="flex gap-2">
+                        <div class="w-1/3"><select v-model="newItem.transportType" class="w-full bg-white border border-gray-200 p-2 rounded-lg font-bold text-xs"><option value="transit">大眾運輸</option><option value="walk">步行</option><option value="car">開車</option></select></div>
+                        <div class="w-2/3"><input v-model="newItem.transportTime" type="text" placeholder="例如：約 15 分鐘" class="w-full bg-white border border-gray-200 p-2 rounded-lg font-bold text-xs"></div>
+                    </div>
+                </div>
                 <div class="flex gap-3">
                     <div class="w-1/2"><label class="text-[10px] font-bold text-gray-400 block mb-1">日期</label>
                         <select v-model="newItem.date" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl font-bold text-xs"><option v-for="day in tripDays" :key="day.date" :value="day.date">{{ day.date }}</option></select>
@@ -452,16 +459,17 @@
                 db.ref('shopping').on('value', (s) => { this.shoppingData = s.val() || {}; });
                 db.ref('checklist').on('value', (s) => { this.checklistData = s.val() || {}; });
             },
-            // 🔥 新增：判斷日期是否在旅遊範圍內
-            isTripDate(date) { return this.tripDays.some(d => d.date === date); },
-            // 🔥 新增：判斷該日期是否有行程
-            hasEvents(date) { return this.itineraryData[date] && Object.keys(this.itineraryData[date]).length > 0; },
-            // 🔥 新增：月曆跳轉功能
+            // 🔥 取得特定日期的行程
+            getDayItinerary(date) {
+                const dayData = this.itineraryData[date] || {};
+                return Object.keys(dayData).map(key => ({ id: key, ...dayData[key] })).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+            },
+            // 🔥 判斷該日期是否有行程
+            hasEvents(date) { return this.getDayItinerary(date).length > 0; },
+            // 🔥 月曆跳轉功能
             jumpToDate(date) {
-                if (this.isTripDate(date)) {
-                    this.selectedDate = date;
-                    this.activeTab = 'itinerary';
-                }
+                this.selectedDate = date;
+                this.activeTab = 'itinerary';
             },
             handlePlusClick() {
                 if (this.activeTab === 'itinerary') this.openAddItinerary();
