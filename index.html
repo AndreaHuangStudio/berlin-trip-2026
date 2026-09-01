@@ -101,12 +101,16 @@
                 </div>
             </div>
 
-            <div class="bg-gradient-to-r from-blue-500 to-cyan-400 rounded-2xl p-4 mb-3 shadow-md text-white flex justify-between items-center">
+            <!-- 🔥 真實天氣卡片 (動態判斷真/假資料) -->
+            <div class="bg-gradient-to-r from-blue-500 to-cyan-400 rounded-2xl p-4 mb-3 shadow-md text-white flex justify-between items-center relative overflow-hidden">
+                <div v-if="currentWeather.isReal" class="absolute top-0 right-0 bg-green-500 text-white text-[8px] font-bold px-2 py-0.5 rounded-bl-lg">LIVE 氣象局預報</div>
+                <div v-else class="absolute top-0 right-0 bg-white/20 text-white text-[8px] font-bold px-2 py-0.5 rounded-bl-lg">歷史模擬 (超過預報範圍)</div>
+
                 <div>
-                    <div class="text-xs font-bold opacity-80 mb-1 flex items-center gap-1"><i class="fa-solid fa-location-dot"></i> 當地天氣</div>
+                    <div class="text-xs font-bold opacity-80 mb-1 flex items-center gap-1"><i class="fa-solid fa-location-dot"></i> 柏林當地天氣</div>
                     <div class="text-2xl font-black">{{ currentWeather.temp }}°C <span class="text-sm font-normal opacity-80 ml-1">體感 {{ currentWeather.feelsLike }}°C</span></div>
                 </div>
-                <div class="text-right">
+                <div class="text-right mt-1">
                     <i class="fa-solid text-4xl opacity-90" :class="currentWeather.icon"></i>
                     <div class="text-[10px] font-bold mt-1 opacity-90">{{ currentWeather.desc }}</div>
                 </div>
@@ -245,10 +249,10 @@
             </div>
         </div>
 
-        <!-- ================= 6. 資訊 ================= -->
+        <!-- ================= 6. 資訊 (含匯出功能) ================= -->
         <div v-show="activeTab === 'info'" class="space-y-6 px-1">
              
-             <!-- 🔥 升級：雙向匯率換算區塊 -->
+             <!-- 雙向匯率換算區塊 -->
              <div class="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="font-bold flex items-center"><i class="fa-solid fa-money-bill-transfer text-green-600 mr-2"></i> 雙向匯率換算</h3>
@@ -256,15 +260,11 @@
                         目前匯率: <input v-model.number="exchangeRate" type="number" step="0.1" class="w-14 p-1 border border-gray-200 rounded text-center text-gerBlack font-black bg-gray-50 outline-none focus:border-gerGold">
                     </div>
                 </div>
-                
-                <!-- 歐元轉台幣 -->
                 <div class="flex items-center space-x-3 mb-3">
                     <input v-model="calcEur" type="number" placeholder="輸入歐元 €" class="w-1/2 p-2 border border-gray-200 rounded-lg text-center bg-blue-50 text-blue-700 font-bold outline-none focus:border-blue-400">
                     <i class="fa-solid fa-arrow-right text-gray-300"></i>
                     <div class="w-1/2 p-2 rounded-lg bg-gray-50 text-center font-bold text-gerBlack">{{ (calcEur * exchangeRate).toFixed(0) }} NT$</div>
                 </div>
-
-                <!-- 台幣轉歐元 -->
                 <div class="flex items-center space-x-3">
                     <input v-model="calcTwd" type="number" placeholder="輸入台幣 NT$" class="w-1/2 p-2 border border-gray-200 rounded-lg text-center bg-green-50 text-green-700 font-bold outline-none focus:border-green-400">
                     <i class="fa-solid fa-arrow-right text-gray-300"></i>
@@ -272,6 +272,16 @@
                 </div>
             </div>
             
+            <!-- 🔥 全新：資料一鍵匯出區塊 -->
+            <div>
+                <h3 class="font-bold mb-3 flex items-center text-gerBlack"><i class="fa-solid fa-file-export text-orange-500 mr-2"></i> 資料匯出備份 (Excel 適用)</h3>
+                <div class="grid grid-cols-2 gap-3 text-center mb-3">
+                    <button @click="exportItineraryCSV" class="bg-orange-50 p-4 rounded-2xl border border-orange-100 text-orange-600 font-black shadow-sm active:scale-95 transition-transform"><i class="fa-solid fa-map-location-dot block text-2xl mb-1"></i> 匯出行程表</button>
+                    <button @click="exportExpenseCSV" class="bg-green-50 p-4 rounded-2xl border border-green-100 text-green-600 font-black shadow-sm active:scale-95 transition-transform"><i class="fa-solid fa-file-invoice-dollar block text-2xl mb-1"></i> 匯出記帳明細</button>
+                </div>
+                <p class="text-[10px] text-gray-400 font-bold text-center">下載為 CSV 檔，可直接用 Excel 開啟</p>
+            </div>
+
             <!-- 自動抓取：航班資訊 -->
             <div>
                 <h3 class="font-bold mb-3 flex items-center text-gerBlack"><i class="fa-solid fa-plane text-cyan-600 mr-2"></i> 航班資訊</h3>
@@ -415,8 +425,10 @@
                 
                 exchangeRate: 34.5,
                 calcEur: 100,
-                // 🔥 新增：台幣預設欄位
                 calcTwd: 1000,
+                
+                // 🔥 真實天氣 API 資料儲存庫
+                realWeather: {},
                 
                 tripDays: [
                     { date: '2026-09-20', dayName: 'Sun', dateNum: '20' },
@@ -425,7 +437,7 @@
                     { date: '2026-09-23', dayName: 'Wed', dateNum: '23' },
                     { date: '2026-09-24', dayName: 'Thu', dateNum: '24' },
                     { date: '2026-09-25', dayName: 'Fri', dateNum: '25' },
-                    { date: '2026-09-26', dayName: 'Sat', dateNum: '26' },
+                    { date: '2026-09-26', Sat: 'Sat', dateNum: '26' },
                     { date: '2026-09-27', dayName: 'Sun', dateNum: '27' },
                     { date: '2026-09-28', dayName: 'Mon', dateNum: '28' },
                     { date: '2026-09-29', dayName: 'Tue', dateNum: '29' },
@@ -459,11 +471,24 @@
             shoppingList() { return Object.keys(this.shoppingData).map(key => ({ id: key, ...this.shoppingData[key] })); },
             checklist() { return Object.keys(this.checklistData).map(key => ({ id: key, ...this.checklistData[key] })).sort((a, b) => (a.completed === b.completed) ? 0 : a.completed ? 1 : -1); },
             completedChecklistCount() { return this.checklist.filter(item => item.completed).length; },
+            
+            // 🔥 全新：真實天氣與模擬天氣自動切換器
             currentWeather() {
+                // 如果 API 有抓到該日期的真實資料，優先顯示真實天氣
+                if (this.realWeather[this.selectedDate]) {
+                    return this.realWeather[this.selectedDate];
+                }
+                // 超過 14 天預報範圍，自動退回模擬天氣防呆
                 const lastDigit = parseInt(this.selectedDate.slice(-1));
-                const weathers = [{ temp: 18, icon: 'fa-cloud-sun', desc: '多雲時晴', feelsLike: 16 }, { temp: 16, icon: 'fa-cloud', desc: '陰天', feelsLike: 14 }, { temp: 20, icon: 'fa-sun text-gerGold', desc: '晴朗', feelsLike: 19 }, { temp: 14, icon: 'fa-cloud-rain', desc: '短暫雨', feelsLike: 12 }];
-                return weathers[lastDigit % 4];
+                const weathers = [
+                    { temp: 18, icon: 'fa-cloud-sun', desc: '多雲時晴', feelsLike: 16, isReal: false }, 
+                    { temp: 16, icon: 'fa-cloud', desc: '陰天', feelsLike: 14, isReal: false }, 
+                    { temp: 20, icon: 'fa-sun text-gerGold', desc: '晴朗', feelsLike: 19, isReal: false }, 
+                    { temp: 14, icon: 'fa-cloud-rain', desc: '短暫雨', feelsLike: 12, isReal: false }
+                ];
+                return weathers[lastDigit % 4] || weathers[0];
             },
+
             allFlights() {
                 let flights = [];
                 for (const date in this.itineraryData) {
@@ -493,6 +518,89 @@
                 db.ref('shopping').on('value', (s) => { this.shoppingData = s.val() || {}; });
                 db.ref('checklist').on('value', (s) => { this.checklistData = s.val() || {}; });
             },
+
+            // 🔥 全新：串接 Open-Meteo 免費氣象 API
+            fetchRealWeather() {
+                // 抓取德國柏林 (緯度52.52, 經度13.41) 未來 16 天的最高溫與體感溫度
+                fetch('https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&daily=weathercode,temperature_2m_max,apparent_temperature_max&timezone=Europe%2FBerlin&forecast_days=16')
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.daily) {
+                        const daily = data.daily;
+                        let weatherMap = {};
+                        for (let i = 0; i < daily.time.length; i++) {
+                            const date = daily.time[i]; // 格式為 YYYY-MM-DD
+                            const code = daily.weathercode[i];
+                            const temp = Math.round(daily.temperature_2m_max[i]);
+                            const feelsLike = Math.round(daily.apparent_temperature_max[i]);
+                            
+                            // WMO 國際氣象代碼轉換為 FontAwesome 圖示
+                            let icon = 'fa-sun text-gerGold';
+                            let desc = '晴朗';
+                            
+                            if ([1, 2, 3].includes(code)) { icon = 'fa-cloud-sun text-gray-200'; desc = '多雲'; }
+                            if ([45, 48].includes(code)) { icon = 'fa-smog text-gray-300'; desc = '起霧'; }
+                            if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) { icon = 'fa-cloud-rain text-blue-300'; desc = '下雨'; }
+                            if ([71, 73, 75, 77, 85, 86].includes(code)) { icon = 'fa-snowflake text-blue-200'; desc = '下雪'; }
+                            if ([95, 96, 99].includes(code)) { icon = 'fa-cloud-bolt text-purple-400'; desc = '雷陣雨'; }
+
+                            weatherMap[date] = { temp, feelsLike, icon, desc, isReal: true };
+                        }
+                        this.realWeather = weatherMap;
+                    }
+                })
+                .catch(err => console.log('氣象抓取失敗，自動退回模擬模式:', err));
+            },
+
+            // 🔥 全新：匯出行程表 CSV
+            exportItineraryCSV() {
+                let csv = '\uFEFF'; // 加入 BOM，讓 Excel 開啟時中文字不會亂碼
+                csv += "日期,時間,分類,行程標題,地點/備註,營業時間,門票費用,交通方式,交通時間\n";
+                
+                for (const date in this.itineraryData) {
+                    const dayData = this.itineraryData[date];
+                    const items = Object.keys(dayData).map(k => dayData[k]).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+                    
+                    items.forEach(item => {
+                        // 處理文字內的逗號，避免破壞 CSV 格式
+                        const title = `"${(item.title || '').replace(/"/g, '""')}"`;
+                        const subtitle = `"${(item.subtitle || '').replace(/"/g, '""')}"`;
+                        const hours = `"${(item.hours || '').replace(/"/g, '""')}"`;
+                        const ticket = `"${(item.ticket || '').replace(/"/g, '""')}"`;
+                        const transTime = `"${(item.transportTime || '').replace(/"/g, '""')}"`;
+                        
+                        csv += `${date},${item.time},${item.category},${title},${subtitle},${hours},${ticket},${item.transportType || ''},${transTime}\n`;
+                    });
+                }
+                this.downloadFile(csv, 'Andrea_Duke_Itinerary_2026.csv');
+            },
+
+            // 🔥 全新：匯出記帳明細 CSV
+            exportExpenseCSV() {
+                let csv = '\uFEFF'; 
+                csv += "日期,分類,消費名稱,幣別,金額,付款方式,備註\n";
+                
+                this.expenseList.forEach(exp => {
+                    const name = `"${(exp.name || '').replace(/"/g, '""')}"`;
+                    const note = `"${(exp.note || '').replace(/"/g, '""')}"`;
+                    csv += `${exp.date},${exp.category},${name},${exp.currency},${exp.amount},${exp.payment},${note}\n`;
+                });
+                this.downloadFile(csv, 'Andrea_Duke_Expenses_2026.csv');
+            },
+
+            // 下載檔案核心功能
+            downloadFile(content, fileName) {
+                const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", fileName);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            },
+
             getDayItinerary(date) {
                 const dayData = this.itineraryData[date] || {};
                 return Object.keys(dayData).map(key => ({ id: key, ...dayData[key] })).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
@@ -538,8 +646,11 @@
         },
         mounted() {
             this.fetchDataFromFirebase();
+            this.fetchRealWeather(); // 🔥 初始化時抓取一次真實天氣
+            
             const savedRate = localStorage.getItem('andreaTripExchangeRate');
             if (savedRate) { this.exchangeRate = parseFloat(savedRate); }
+            
             window.addEventListener('online', () => this.isOnline = true);
             window.addEventListener('offline', () => this.isOnline = false);
         },
