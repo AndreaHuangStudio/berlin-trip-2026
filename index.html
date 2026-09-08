@@ -272,7 +272,7 @@
                 </div>
             </div>
 
-            <!-- 🔥 全新：柏林馬拉松專屬資源區塊 -->
+            <!-- 柏林馬拉松專屬資源區塊 -->
             <div>
                 <h3 class="font-bold mb-3 flex items-center text-gerBlack"><i class="fa-solid fa-medal text-gerGold mr-2"></i> 柏林馬拉松專屬資源</h3>
                 <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-3 text-center">
@@ -521,11 +521,40 @@
             }
         },
         methods: {
+            // 🔥 全新：先載入 Local Storage 的資料，做到秒速開啟與完美離線
+            loadLocalData() {
+                const localItinerary = localStorage.getItem('andrea_itinerary');
+                if (localItinerary) { this.itineraryData = JSON.parse(localItinerary); this.isLoading = false; }
+                
+                const localWallet = localStorage.getItem('andrea_wallet');
+                if (localWallet) this.expenseData = JSON.parse(localWallet);
+                
+                const localShopping = localStorage.getItem('andrea_shopping');
+                if (localShopping) this.shoppingData = JSON.parse(localShopping);
+                
+                const localChecklist = localStorage.getItem('andrea_checklist');
+                if (localChecklist) this.checklistData = JSON.parse(localChecklist);
+            },
+
+            // 🔥 升級：收到 Firebase 資料後，自動備份到 Local Storage
             fetchDataFromFirebase() {
-                db.ref('itinerary').on('value', (s) => { this.itineraryData = s.val() || {}; this.isLoading = false; });
-                db.ref('wallet').on('value', (s) => { this.expenseData = s.val() || {}; });
-                db.ref('shopping').on('value', (s) => { this.shoppingData = s.val() || {}; });
-                db.ref('checklist').on('value', (s) => { this.checklistData = s.val() || {}; });
+                db.ref('itinerary').on('value', (s) => { 
+                    this.itineraryData = s.val() || {}; 
+                    localStorage.setItem('andrea_itinerary', JSON.stringify(this.itineraryData));
+                    this.isLoading = false; 
+                });
+                db.ref('wallet').on('value', (s) => { 
+                    this.expenseData = s.val() || {}; 
+                    localStorage.setItem('andrea_wallet', JSON.stringify(this.expenseData));
+                });
+                db.ref('shopping').on('value', (s) => { 
+                    this.shoppingData = s.val() || {}; 
+                    localStorage.setItem('andrea_shopping', JSON.stringify(this.shoppingData));
+                });
+                db.ref('checklist').on('value', (s) => { 
+                    this.checklistData = s.val() || {}; 
+                    localStorage.setItem('andrea_checklist', JSON.stringify(this.checklistData));
+                });
             },
 
             fetchRealWeather() {
@@ -647,7 +676,12 @@
             getTransportIcon(t) { const i = { 'walk': 'fa-solid fa-person-walking', 'car': 'fa-solid fa-car', 'transit': 'fa-solid fa-train-subway' }; return i[t] || 'fa-solid fa-train-subway'; }
         },
         mounted() {
+            // 🔥 1. 先讀取手機裡的離線備份，做到秒載入
+            this.loadLocalData();
+            
+            // 🔥 2. 再去 Firebase 抓最新資料（並自動更新備份）
             this.fetchDataFromFirebase();
+            
             this.fetchRealWeather(); 
             
             const savedRate = localStorage.getItem('andreaTripExchangeRate');
