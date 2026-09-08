@@ -101,7 +101,7 @@
                 </div>
             </div>
 
-            <!-- 🔥 真實天氣卡片 (動態判斷真/假資料) -->
+            <!-- 天氣卡片 -->
             <div class="bg-gradient-to-r from-blue-500 to-cyan-400 rounded-2xl p-4 mb-3 shadow-md text-white flex justify-between items-center relative overflow-hidden">
                 <div v-if="currentWeather.isReal" class="absolute top-0 right-0 bg-green-500 text-white text-[8px] font-bold px-2 py-0.5 rounded-bl-lg">LIVE 氣象局預報</div>
                 <div v-else class="absolute top-0 right-0 bg-white/20 text-white text-[8px] font-bold px-2 py-0.5 rounded-bl-lg">歷史模擬 (超過預報範圍)</div>
@@ -271,8 +271,23 @@
                     <div class="w-1/2 p-2 rounded-lg bg-gray-50 text-center font-bold text-gerBlack">{{ (calcTwd / exchangeRate).toFixed(2) }} €</div>
                 </div>
             </div>
+
+            <!-- 🔥 全新：柏林馬拉松專屬資源區塊 -->
+            <div>
+                <h3 class="font-bold mb-3 flex items-center text-gerBlack"><i class="fa-solid fa-medal text-gerGold mr-2"></i> 柏林馬拉松專屬資源</h3>
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-3 text-center">
+                    <div class="w-16 h-16 mx-auto bg-blue-50 text-blue-500 rounded-full flex items-center justify-center text-3xl mb-2 shadow-sm border border-blue-100">
+                        <i class="fa-solid fa-person-running"></i>
+                    </div>
+                    <h4 class="font-black text-lg text-gerBlack mb-1">柏林馬拉松路線與地圖</h4>
+                    <p class="text-xs text-gray-500 font-bold mb-4">包含起終點、補給站與賽道全景</p>
+                    <a href="https://www.google.com/maps/@52.4986761,13.3272453,13z/data=!3m1!4b1!4m2!6m1!1s1xTOrkEsB_tVCdmhLSyvZOSnGHfo5oqI" target="_blank" rel="noopener noreferrer" class="w-full bg-blue-50 border border-blue-100 text-blue-600 font-bold py-3 rounded-xl flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform">
+                        <i class="fa-brands fa-google"></i> 開啟 Google Maps 專屬地圖
+                    </a>
+                </div>
+            </div>
             
-            <!-- 🔥 全新：資料一鍵匯出區塊 -->
+            <!-- 資料一鍵匯出區塊 -->
             <div>
                 <h3 class="font-bold mb-3 flex items-center text-gerBlack"><i class="fa-solid fa-file-export text-orange-500 mr-2"></i> 資料匯出備份 (Excel 適用)</h3>
                 <div class="grid grid-cols-2 gap-3 text-center mb-3">
@@ -427,7 +442,6 @@
                 calcEur: 100,
                 calcTwd: 1000,
                 
-                // 🔥 真實天氣 API 資料儲存庫
                 realWeather: {},
                 
                 tripDays: [
@@ -437,7 +451,7 @@
                     { date: '2026-09-23', dayName: 'Wed', dateNum: '23' },
                     { date: '2026-09-24', dayName: 'Thu', dateNum: '24' },
                     { date: '2026-09-25', dayName: 'Fri', dateNum: '25' },
-                    { date: '2026-09-26', Sat: 'Sat', dateNum: '26' },
+                    { date: '2026-09-26', dayName: 'Sat', dateNum: '26' },
                     { date: '2026-09-27', dayName: 'Sun', dateNum: '27' },
                     { date: '2026-09-28', dayName: 'Mon', dateNum: '28' },
                     { date: '2026-09-29', dayName: 'Tue', dateNum: '29' },
@@ -472,13 +486,8 @@
             checklist() { return Object.keys(this.checklistData).map(key => ({ id: key, ...this.checklistData[key] })).sort((a, b) => (a.completed === b.completed) ? 0 : a.completed ? 1 : -1); },
             completedChecklistCount() { return this.checklist.filter(item => item.completed).length; },
             
-            // 🔥 全新：真實天氣與模擬天氣自動切換器
             currentWeather() {
-                // 如果 API 有抓到該日期的真實資料，優先顯示真實天氣
-                if (this.realWeather[this.selectedDate]) {
-                    return this.realWeather[this.selectedDate];
-                }
-                // 超過 14 天預報範圍，自動退回模擬天氣防呆
+                if (this.realWeather[this.selectedDate]) { return this.realWeather[this.selectedDate]; }
                 const lastDigit = parseInt(this.selectedDate.slice(-1));
                 const weathers = [
                     { temp: 18, icon: 'fa-cloud-sun', desc: '多雲時晴', feelsLike: 16, isReal: false }, 
@@ -519,9 +528,7 @@
                 db.ref('checklist').on('value', (s) => { this.checklistData = s.val() || {}; });
             },
 
-            // 🔥 全新：串接 Open-Meteo 免費氣象 API
             fetchRealWeather() {
-                // 抓取德國柏林 (緯度52.52, 經度13.41) 未來 16 天的最高溫與體感溫度
                 fetch('https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&daily=weathercode,temperature_2m_max,apparent_temperature_max&timezone=Europe%2FBerlin&forecast_days=16')
                 .then(res => res.json())
                 .then(data => {
@@ -529,12 +536,11 @@
                         const daily = data.daily;
                         let weatherMap = {};
                         for (let i = 0; i < daily.time.length; i++) {
-                            const date = daily.time[i]; // 格式為 YYYY-MM-DD
+                            const date = daily.time[i]; 
                             const code = daily.weathercode[i];
                             const temp = Math.round(daily.temperature_2m_max[i]);
                             const feelsLike = Math.round(daily.apparent_temperature_max[i]);
                             
-                            // WMO 國際氣象代碼轉換為 FontAwesome 圖示
                             let icon = 'fa-sun text-gerGold';
                             let desc = '晴朗';
                             
@@ -552,9 +558,8 @@
                 .catch(err => console.log('氣象抓取失敗，自動退回模擬模式:', err));
             },
 
-            // 🔥 全新：匯出行程表 CSV
             exportItineraryCSV() {
-                let csv = '\uFEFF'; // 加入 BOM，讓 Excel 開啟時中文字不會亂碼
+                let csv = '\uFEFF'; 
                 csv += "日期,時間,分類,行程標題,地點/備註,營業時間,門票費用,交通方式,交通時間\n";
                 
                 for (const date in this.itineraryData) {
@@ -562,7 +567,6 @@
                     const items = Object.keys(dayData).map(k => dayData[k]).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
                     
                     items.forEach(item => {
-                        // 處理文字內的逗號，避免破壞 CSV 格式
                         const title = `"${(item.title || '').replace(/"/g, '""')}"`;
                         const subtitle = `"${(item.subtitle || '').replace(/"/g, '""')}"`;
                         const hours = `"${(item.hours || '').replace(/"/g, '""')}"`;
@@ -575,7 +579,6 @@
                 this.downloadFile(csv, 'Andrea_Duke_Itinerary_2026.csv');
             },
 
-            // 🔥 全新：匯出記帳明細 CSV
             exportExpenseCSV() {
                 let csv = '\uFEFF'; 
                 csv += "日期,分類,消費名稱,幣別,金額,付款方式,備註\n";
@@ -588,7 +591,6 @@
                 this.downloadFile(csv, 'Andrea_Duke_Expenses_2026.csv');
             },
 
-            // 下載檔案核心功能
             downloadFile(content, fileName) {
                 const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
                 const link = document.createElement("a");
@@ -646,7 +648,7 @@
         },
         mounted() {
             this.fetchDataFromFirebase();
-            this.fetchRealWeather(); // 🔥 初始化時抓取一次真實天氣
+            this.fetchRealWeather(); 
             
             const savedRate = localStorage.getItem('andreaTripExchangeRate');
             if (savedRate) { this.exchangeRate = parseFloat(savedRate); }
